@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Proveedor {
+  id       String   @id @default(cuid())
+  ruc      String?  @unique
+  nombre   String
+  telefono String?
+  correo   String?
+  ciudad   String?
+  notas    String?
+  compras  Compra[]
+}
+
+model Producto {
+  id                 String          @id @default(cuid())
+  sku                String          @unique
+  nombre             String
+  marca              String?
+  categoria          String
+  especificacion     String?
+  presentacion       String?
+  oemCode            String?
+  precioCompra       Decimal         @db.Decimal(10, 2)
+  precioVenta        Decimal         @db.Decimal(10, 2)
+  stock              Int             @default(0)
+  minStock           Int             @default(0)
+  fechaCreacion      DateTime        @default(now())
+  fechaActualizacion DateTime        @updatedAt
+  detallesCompra     DetalleCompra[]
+  detallesVenta      DetalleVenta[]
+}
+
+model Compra {
+  id                 String          @id @default(cuid())
+  proveedorId        String
+  fecha              DateTime
+  tipoDocumento      String?
+  serie              String?
+  numero             String?
+  moneda             String?
+  total              Decimal         @db.Decimal(10, 2)
+  metodoPago         String?
+  notas              String?
+  fechaCreacion      DateTime        @default(now())
+  fechaActualizacion DateTime        @updatedAt
+  proveedor          Proveedor       @relation(fields: [proveedorId], references: [id])
+  detalles           DetalleCompra[]
+
+  @@unique([tipoDocumento, serie, numero])
+}
+
+model DetalleCompra {
+  id         String   @id @default(cuid())
+  compraId   String
+  productoId String
+  cantidad   Int
+  costoUnit  Decimal  @db.Decimal(10, 2)
+  subtotal   Decimal  @db.Decimal(10, 2)
+  compra     Compra   @relation(fields: [compraId], references: [id])
+  producto   Producto @relation(fields: [productoId], references: [id])
+
+  @@unique([compraId, productoId])
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  nombre    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Venta {
+  id                 String         @id @default(cuid())
+  nombreCliente      String
+  dni                String?
+  metodoPago         String?
+  total              Decimal        @db.Decimal(10, 2)
+  fechaCreacion      DateTime       @default(now())
+  fechaActualizacion DateTime       @updatedAt
+  notas              String?
+  detalles           DetalleVenta[]
+}
+
+model DetalleVenta {
+  id         String   @id @default(cuid())
+  ventaId    String
+  productoId String
+  cantidad   Int
+  precioUnit Decimal  @db.Decimal(10, 2)
+  descuento  Decimal  @default(0) @db.Decimal(10, 2)
+  subtotal   Decimal  @db.Decimal(10, 2)
+  producto   Producto @relation(fields: [productoId], references: [id])
+  venta      Venta    @relation(fields: [ventaId], references: [id])
+
+  @@unique([ventaId, productoId])
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+}
