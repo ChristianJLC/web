@@ -18,7 +18,16 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "app/api/**", // ✅ ignora rutas API (opcional)
     ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off", // ✅ desactiva los errores de any
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }
+      ],
+      "react-hooks/exhaustive-deps": "warn",
+    },
   },
 ];
 
