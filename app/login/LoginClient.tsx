@@ -28,8 +28,7 @@ export default function LoginClient() {
         setLoading(false);
 
         if (res?.ok) {
-            const cb = params.get("callbackUrl") || "/dashboard";
-            router.push(cb);
+            router.replace("/dashboard");  // en vez de usar params.get("callbackUrl")
         } else {
             setError("Usuario o contraseña inválidos");
         }
