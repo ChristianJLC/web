@@ -1,4 +1,3 @@
-//web/app/api/productos/[id]/route.ts
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
@@ -12,14 +11,12 @@ const EditableSchema = z.object({
     oemCode: z.string().nullable().optional(),
     precioVenta: z.coerce.number().nonnegative(),
     minStock: z.coerce.number().int().nonnegative(),
-    // si más adelante decides permitir editar precioCompra, añade aquí:
-    // precioCompra: z.coerce.number().nonnegative().optional(),
 });
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: any) {
     try {
         const body = await req.json();
-        const data = EditableSchema.parse(body); // <- Solo estos campos pasan
+        const data = EditableSchema.parse(body);
         const updated = await prisma.producto.update({
             where: { id: params.id },
             data,
@@ -30,7 +27,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: any) {
     try {
         await prisma.producto.delete({ where: { id: params.id } });
         return Response.json({ ok: true });
