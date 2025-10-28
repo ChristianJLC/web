@@ -1,8 +1,5 @@
-// web/app/api/compras/[id]/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-
-type Params = { params: { id: string } };
 
 /* ------------------------ Helpers ------------------------ */
 function parseDateOnly(d: string) {
@@ -30,7 +27,7 @@ type PutBody = {
 
 /* ------------------------ GET ------------------------ */
 // GET /api/compras/:id
-export async function GET(_req: Request, { params }: Params) {
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
     const c = await prisma.compra.findUnique({
         where: { id: params.id },
         include: {
@@ -74,7 +71,7 @@ export async function GET(_req: Request, { params }: Params) {
 
 /* ------------------------ PUT (Actualizar) ------------------------ */
 // PUT /api/compras/:id
-export async function PUT(req: Request, { params }: Params) {
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
     try {
         const body = (await req.json()) as PutBody;
 
@@ -114,7 +111,6 @@ export async function PUT(req: Request, { params }: Params) {
         );
 
         const updated = await prisma.$transaction(async (tx) => {
-            // 1) Compra y detalles actuales
             const current = await tx.compra.findUnique({
                 where: { id: params.id },
                 include: { detalles: true },
@@ -124,14 +120,12 @@ export async function PUT(req: Request, { params }: Params) {
             const currentById = new Map(current.detalles.map((d) => [d.id, d]));
             const keep = new Set<string>();
 
-            // 2) Upsert de ítems con ajuste de stock por diferencia
             for (const it of items) {
                 const subtotal = it.costoUnit * it.cantidad;
 
                 if (it.detalleId && currentById.has(it.detalleId)) {
                     const prev = currentById.get(it.detalleId)!;
 
-                    // Cambió de producto
                     if (prev.productoId !== it.productoId) {
                         await tx.producto.update({
                             where: { id: prev.productoId },
@@ -142,8 +136,7 @@ export async function PUT(req: Request, { params }: Params) {
                             data: { stock: { increment: it.cantidad } },
                         });
                     } else if (prev.cantidad !== it.cantidad) {
-                        // Misma referencia, ajustar delta
-                        const delta = it.cantidad - prev.cantidad; // + sube, - baja
+                        const delta = it.cantidad - prev.cantidad;
                         if (delta !== 0) {
                             await tx.producto.update({
                                 where: { id: it.productoId },
@@ -163,7 +156,6 @@ export async function PUT(req: Request, { params }: Params) {
                     });
                     keep.add(prev.id);
                 } else {
-                    // Nuevo detalle
                     const created = await tx.detalleCompra.create({
                         data: {
                             compraId: params.id,
@@ -182,7 +174,6 @@ export async function PUT(req: Request, { params }: Params) {
                 }
             }
 
-            // 3) Eliminar detalles que ya no están y revertir stock
             const toDelete = current.detalles.filter((d) => !keep.has(d.id));
             for (const d of toDelete) {
                 await tx.detalleCompra.delete({ where: { id: d.id } });
@@ -192,7 +183,6 @@ export async function PUT(req: Request, { params }: Params) {
                 });
             }
 
-            // 4) Actualizar cabecera
             const compra = await tx.compra.update({
                 where: { id: params.id },
                 data: {
@@ -215,7 +205,6 @@ export async function PUT(req: Request, { params }: Params) {
                 },
             });
 
-            // 5) Respuesta formateada como tu GET
             return {
                 id: compra.id,
                 fecha:
@@ -254,7 +243,7 @@ export async function PUT(req: Request, { params }: Params) {
 
 /* ------------------------ DELETE ------------------------ */
 // DELETE /api/compras/:id
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
     try {
         await prisma.$transaction(async (tx) => {
             const dets = await tx.detalleCompra.findMany({
@@ -262,7 +251,6 @@ export async function DELETE(_req: Request, { params }: Params) {
                 select: { productoId: true, cantidad: true },
             });
 
-            // Borrar compra => revertir stock (restar lo que se sumó al crearla)
             for (const d of dets) {
                 await tx.producto.update({
                     where: { id: d.productoId },

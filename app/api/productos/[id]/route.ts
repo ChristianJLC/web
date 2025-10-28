@@ -1,3 +1,4 @@
+//web/app/api/productos/[id]/route.ts
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 

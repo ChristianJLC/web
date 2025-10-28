@@ -1,9 +1,6 @@
-// web/app/api/ventas/[id]/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-
-type Params = { params: { id: string } };
 
 /** Util: convierte "YYYY-MM-DD" a un Date en 12:00 UTC para evitar corrimientos */
 function ymdToUTCNoon(ymd: string): Date {
@@ -12,7 +9,7 @@ function ymdToUTCNoon(ymd: string): Date {
 }
 
 /* ========================= GET ========================= */
-export async function GET(_req: Request, { params }: Params) {
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
     const v = await prisma.venta.findUnique({
         where: { id: params.id },
         include: {
@@ -28,7 +25,7 @@ export async function GET(_req: Request, { params }: Params) {
 
     const data = {
         id: v.id,
-        fecha: v.fechaCreacion,         // Date guardada en DB
+        fecha: v.fechaCreacion,
         nombreCliente: v.nombreCliente,
         dni: v.dni,
         metodoPago: v.metodoPago,
@@ -50,7 +47,7 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 /* ========================= DELETE ========================= */
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
     try {
         await prisma.$transaction(async (tx) => {
             const detalles = await tx.detalleVenta.findMany({
@@ -84,7 +81,7 @@ const ItemSchema = z.object({
 });
 
 const EditVentaSchema = z.object({
-    fecha: z.string().min(8), // "YYYY-MM-DD"
+    fecha: z.string().min(8),
     nombreCliente: z.string().min(1),
     dni: z.string().nullable().optional(),
     metodoPago: z.string().nullable().optional(),
@@ -92,19 +89,17 @@ const EditVentaSchema = z.object({
     items: z.array(ItemSchema).min(1),
 });
 
-export async function PUT(req: Request, { params }: Params) {
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
     try {
         const body = await req.json();
         const data = EditVentaSchema.parse(body);
 
-        // Total
         const total = data.items.reduce((sum, it) => {
             const net = Math.max(0, it.precioUnit - it.descuento);
             return sum + it.cantidad * net;
         }, 0);
 
         const updated = await prisma.$transaction(async (tx) => {
-            // 1) Revertir stock anterior
             const actuales = await tx.detalleVenta.findMany({
                 where: { ventaId: params.id },
                 select: { productoId: true, cantidad: true },
@@ -117,14 +112,12 @@ export async function PUT(req: Request, { params }: Params) {
                 });
             }
 
-            // 2) Borrar detalles antiguos
             await tx.detalleVenta.deleteMany({ where: { ventaId: params.id } });
 
-            // 3) Actualizar cabecera con fecha segura (12:00 UTC)
             const venta = await tx.venta.update({
                 where: { id: params.id },
                 data: {
-                    fechaCreacion: ymdToUTCNoon(data.fecha), // <<--- FIX AQUÍ
+                    fechaCreacion: ymdToUTCNoon(data.fecha),
                     nombreCliente: data.nombreCliente,
                     dni: data.dni ?? null,
                     metodoPago: data.metodoPago ?? null,
@@ -133,7 +126,6 @@ export async function PUT(req: Request, { params }: Params) {
                 },
             });
 
-            // 4) Nuevos detalles + ajustar stock
             for (const it of data.items) {
                 const net = Math.max(0, it.precioUnit - it.descuento);
                 const subtotal = net * it.cantidad;
