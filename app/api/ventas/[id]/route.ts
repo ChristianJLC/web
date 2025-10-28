@@ -9,7 +9,7 @@ function ymdToUTCNoon(ymd: string): Date {
 }
 
 /* ========================= GET ========================= */
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: any) {
     const v = await prisma.venta.findUnique({
         where: { id: params.id },
         include: {
@@ -47,7 +47,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 /* ========================= DELETE ========================= */
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: any) {
     try {
         await prisma.$transaction(async (tx) => {
             const detalles = await tx.detalleVenta.findMany({
@@ -89,7 +89,7 @@ const EditVentaSchema = z.object({
     items: z.array(ItemSchema).min(1),
 });
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: any) {
     try {
         const body = await req.json();
         const data = EditVentaSchema.parse(body);

@@ -27,7 +27,7 @@ type PutBody = {
 
 /* ------------------------ GET ------------------------ */
 // GET /api/compras/:id
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: any) {
     const c = await prisma.compra.findUnique({
         where: { id: params.id },
         include: {
@@ -71,7 +71,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 /* ------------------------ PUT (Actualizar) ------------------------ */
 // PUT /api/compras/:id
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: any) {
     try {
         const body = (await req.json()) as PutBody;
 
@@ -243,7 +243,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
 /* ------------------------ DELETE ------------------------ */
 // DELETE /api/compras/:id
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: any) {
     try {
         await prisma.$transaction(async (tx) => {
             const dets = await tx.detalleCompra.findMany({
