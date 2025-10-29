@@ -1,3 +1,4 @@
+//web/app/compras/nueva/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -163,7 +164,7 @@ export default function NuevaCompraPage() {
                 throw new Error(j?.error || "No se pudo registrar la compra.");
             }
 
-            router.push("/productos");
+            router.push("/compras");
         } catch (err: any) {
             setError(err.message);
         } finally {
